@@ -1,4 +1,4 @@
-name: Redirect All NCA Posts
+name: Redirect Multiple Folders to New Domain
 
 on:
   workflow_dispatch:  # ম্যানুয়ালি রান করার জন্য
@@ -10,31 +10,41 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       
-      - name: Convert all HTML files to redirect
+      - name: Convert HTML files to SEO-friendly redirects
         run: |
-          # ⚠️ এখানে আপনার নতুন ডোমেইন বসান
-          NEW_DOMAIN="https://cpo4twe.azurewebsites.net/"
+          # আপনার নতুন ডোমেইন (শেষে কোনো '/' দেবেন না)
+          NEW_DOMAIN="https://cpo4twe.azurewebsites.net"
           
-          # nca ফোল্ডারের সব HTML ফাইল খুঁজে রিডাইরেক্ট কোড বসানো
-          find nca -name "*.html" -type f | while read file; do
-            filename=$(basename "$file")
-            target_url="$NEW_DOMAIN/pix/video/$filename"
-            
-            cat > "$file" << EOF
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="utf-8">
-              <link rel="canonical" href="$target_url">
-              <meta http-equiv="refresh" content="0; url=$target_url">
-              <title>Redirecting...</title>
-          </head>
-          <body>
-              <p>Redirecting to <a href="$target_url">new location</a>...</p>
-          </body>
-          </html>
-          EOF
-            echo "Updated: $file"
+          # যেই ফোল্ডারগুলোর ভেতরের সব পোস্ট রিডাইরেক্ট করতে চান, সেগুলোর নাম এখানে স্পেস দিয়ে লিখুন
+          # উদাহরণ: "nca pix/video another-folder"
+          FOLDERS="marinda pix/video"
+          
+          for folder in $FOLDERS; do
+            if [ -d "$folder" ]; then
+              echo "Processing folder: $folder"
+              # ফোল্ডারের ভেতরের সব .html ফাইল খুঁজে বের করে রিডাইরেক্ট কোড বসানো
+              find "$folder" -name "*.html" -type f | while read file; do
+                target_url="$NEW_DOMAIN/$file"
+                
+                cat > "$file" << EOF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <link rel="canonical" href="$target_url">
+    <meta http-equiv="refresh" content="0; url=$target_url">
+    <title>Redirecting...</title>
+</head>
+<body>
+    <p>Redirecting to <a href="$target_url">new location</a>...</p>
+</body>
+</html>
+EOF
+                echo "Updated: $file"
+              done
+            else
+              echo "Folder not found: $folder"
+            fi
           done
       
       - name: Commit and push changes
@@ -42,5 +52,5 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add .
-          git commit -m "Redirect all pix/video posts to new domain"
+          git commit -m "SEO Redirect: Update all HTML files in specified folders"
           git push
